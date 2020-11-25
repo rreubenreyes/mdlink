@@ -1,0 +1,64 @@
+#!/bin/bash
+
+declare -r INPUT_FILE=$1
+declare -r OUTPUT_FILE=$2
+
+function check_is_file() {
+    if [[ ! -f $(realpath $1) ]]; then
+        echo "ERROR: $1 does not exist."
+    fi
+}
+
+function idempotent_create_links_section() {
+    local links_section=$(grep -F "<#links#/>" $1)
+
+    if [[ -z "$links_section" ]]; then
+        echo "" >> $1
+        echo "<#links#/>" >> $1
+    fi
+}
+
+function create_link_item() {
+    local link_type=$1
+    local target_file=$2
+    local link_text=""
+
+    if [[ $link_type == "outgoing" ]]; then
+        link_text="Outgoing link: [$OUTPUT_FILE]($output_absolute)"
+    elif [[ $link_type == "incoming" ]]; then
+        link_text="Linked by: [$INPUT_FILE]($input_absolute)"
+    fi
+
+    local existing_link_text=$(grep -F "$link_text" "$target_file")
+
+    if [[ -z $existing_link_text ]]; then
+        echo "* $link_text" >> "$target_file"
+    fi
+}
+
+function main() {
+    if [[ $INPUT_FILE != *.md ]] || [[ $OUTPUT_FILE != *.md ]]; then
+        echo "ERROR: Cannot link non-markdown files."
+        exit 1
+    fi
+
+    check_is_file $INPUT_FILE
+    input_absolute=$(realpath $INPUT_FILE)
+
+    check_is_file $OUTPUT_FILE
+    output_absolute=$(realpath $OUTPUT_FILE)
+
+    wait
+
+    idempotent_create_links_section $input_absolute
+    idempotent_create_links_section $output_absolute
+
+    wait
+
+    create_link_item "outgoing" "$input_absolute"
+    create_link_item "incoming" "$output_absolute"
+
+    echo -n "[]($output_absolute)"
+}
+
+main
