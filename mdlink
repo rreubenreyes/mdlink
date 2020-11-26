@@ -6,10 +6,11 @@ declare -r OUTPUT_FILE=$2
 function check_is_file() {
     if [[ ! -f $(realpath $1) ]]; then
         echo "ERROR: $1 does not exist."
+        exit 1
     fi
 }
 
-function idempotent_create_links_section() {
+function create_links_section() {
     local links_section=$(grep -F "<#links#/>" $1)
 
     if [[ -z "$links_section" ]]; then
@@ -50,8 +51,8 @@ function main() {
 
     wait
 
-    idempotent_create_links_section $input_absolute
-    idempotent_create_links_section $output_absolute
+    create_links_section $input_absolute
+    create_links_section $output_absolute
 
     wait
 
